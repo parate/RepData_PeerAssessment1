@@ -35,7 +35,11 @@ Transform the date field from factor to POSIX date, using dplyr and lubridate. T
 Also construct a datetime from date and interval. Interval has to be mutated twice, first to have a string for constructing the datetime, then again so we have it in a usable format for later.
 ```{r}
 activityData <- activityData %>%
-    mutate(date = as_date(date))
+    mutate(date = as_date(date)) %>%
+    mutate(interval = str_pad(interval,4,side = "left", pad = 0)) %>%
+    mutate(timestamp = parse_date_time(paste0(date,interval),"YmdHM")) %>%
+    mutate(interval = as.numeric(interval))
+
 ```
 
 ## What is mean total number of steps taken per day?
@@ -101,9 +105,17 @@ table(completeActivityData)
 So there are **2304 missing values**.
 
 ### Imputing strategy
-A simple imputing strategy might be filling all NA values with the mean values of the respective interval.
+A simple imputing strategy might be filling all NA values with the mean values of the respective interval. First of all, extract the incomplete records into their own object, then fill the NA's, finally merging together a new, complete dataset with all the other complete cases. Calling summary() confirms that there are no longer any NA's present
 ```{r}
-
+incompleteActivityData <- activityData %>% filter(is.na(steps))
+incompleteActivityData$steps <- apply(incompleteActivityData,1,function(row){
+     i <- as.numeric(row["interval"])
+     row["steps"] <- ad_meanStepsPerInterval$steps[ad_meanStepsPerInterval$interval == i]
+     })
+completeActivityData <- bind_rows(
+    activityData %>% filter(!is.na(steps)), incompleteActivityData
+) %>% arrange(timestamp)
+summary(completeActivityData)
 ```
 
 ## Are there differences in activity patterns between weekdays and weekends?

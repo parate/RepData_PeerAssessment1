@@ -31,7 +31,10 @@ Also construct a datetime from date and interval. Interval has to be mutated twi
 
 ```r
 activityData <- activityData %>%
-    mutate(date = as_date(date))
+    mutate(date = as_date(date)) %>%
+    mutate(interval = str_pad(interval,4,side = "left", pad = 0)) %>%
+    mutate(timestamp = parse_date_time(paste0(date,interval),"YmdHM")) %>%
+    mutate(interval = as.numeric(interval))
 ```
 
 ## What is mean total number of steps taken per day?
@@ -121,7 +124,7 @@ ad_meanStepsPerInterval %>%
 ## Source: local data frame [1 x 2]
 ## 
 ##   interval    steps
-##      (int)    (dbl)
+##      (dbl)    (dbl)
 ## 1      835 206.1698
 ```
 **Interval 835 contains the highest average**, at 206 steps.
@@ -144,7 +147,35 @@ table(completeActivityData)
 So there are **2304 missing values**.
 
 ### Imputing strategy
-A simple imputing strategy might be filling all NA values with the mean values of the respective interval.
+A simple imputing strategy might be filling all NA values with the mean values of the respective interval. First of all, extract the incomplete records into their own object, then fill the NA's, finally merging together a new, complete dataset with all the other complete cases. Calling summary() confirms that there are no longer any NA's present
 
+```r
+incompleteActivityData <- activityData %>% filter(is.na(steps))
+incompleteActivityData$steps <- apply(incompleteActivityData,1,function(row){
+     i <- as.numeric(row["interval"])
+     row["steps"] <- ad_meanStepsPerInterval$steps[ad_meanStepsPerInterval$interval == i]
+     })
+completeActivityData <- bind_rows(
+    activityData %>% filter(!is.na(steps)), incompleteActivityData
+) %>% arrange(timestamp)
+summary(completeActivityData)
+```
+
+```
+##      steps             date               interval     
+##  Min.   :  0.00   Min.   :2012-10-01   Min.   :   0.0  
+##  1st Qu.:  0.00   1st Qu.:2012-10-16   1st Qu.: 588.8  
+##  Median :  0.00   Median :2012-10-31   Median :1177.5  
+##  Mean   : 37.38   Mean   :2012-10-31   Mean   :1177.5  
+##  3rd Qu.: 27.00   3rd Qu.:2012-11-15   3rd Qu.:1766.2  
+##  Max.   :806.00   Max.   :2012-11-30   Max.   :2355.0  
+##    timestamp                  
+##  Min.   :2012-10-01 00:00:00  
+##  1st Qu.:2012-10-16 05:58:45  
+##  Median :2012-10-31 11:57:30  
+##  Mean   :2012-10-31 11:57:30  
+##  3rd Qu.:2012-11-15 17:56:15  
+##  Max.   :2012-11-30 23:55:00
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
