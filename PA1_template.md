@@ -31,10 +31,10 @@ Also construct a datetime from date and interval. Interval has to be mutated twi
 
 ```r
 activityData <- activityData %>%
-    mutate(date = as_date(date)) %>%
-    mutate(interval = str_pad(interval,4,side = "left", pad = 0)) %>%
-    mutate(timestamp = parse_date_time(paste0(date,interval),"YmdHM")) %>%
-    mutate(interval = as.numeric(interval))
+    mutate(date = as_date(date))# %>%
+    #mutate(interval = str_pad(interval,4,side = "left", pad = 0)) %>%
+    #mutate(timestamp = parse_date_time(paste0(date,interval),"YmdHM")) %>%
+    #mutate(interval = as.numeric(interval))
 ```
 
 ## What is mean total number of steps taken per day?
@@ -47,12 +47,12 @@ ad_SumStepsPerDay <- activityData %>%
 ```
 
 ### Histogram
-A histogram shows the distribution of daily steps. The warning message tells us that for 8 days, no data was recorded.
+The histogram shows the distribution of daily steps. The warning message tells us that for 8 days, no data was recorded.
 
 
 ```r
 ggplot(ad_SumStepsPerDay, aes(steps)) +
-    geom_histogram(bins = 8)
+    geom_histogram(bins = 12)
 ```
 
 ```
@@ -61,7 +61,7 @@ ggplot(ad_SumStepsPerDay, aes(steps)) +
 
 ![](PA1_template_files/figure-html/unnamed-chunk-5-1.png)
 
-**10000 to 12000 steps** were taken on the majority of days, as it appears.
+**10000 steps** were taken on the majority of days, as it appears.
 
 ### Mean and median values
 Let's take a closer look and compute mean and median daily steps. This can conveniently be done using the function summary(). However, it does floor/ceil so we don't get the exact numbers. Using the respective functions yields a more precise result. NA's have to be removed to get a result.
@@ -124,7 +124,7 @@ ad_meanStepsPerInterval %>%
 ## Source: local data frame [1 x 2]
 ## 
 ##   interval    steps
-##      (dbl)    (dbl)
+##      (int)    (dbl)
 ## 1      835 206.1698
 ```
 **Interval 835 contains the highest average**, at 206 steps.
@@ -157,7 +157,7 @@ incompleteActivityData$steps <- apply(incompleteActivityData,1,function(row){
      })
 completeActivityData <- bind_rows(
     activityData %>% filter(!is.na(steps)), incompleteActivityData
-) %>% arrange(timestamp)
+) %>% arrange(date)
 summary(completeActivityData)
 ```
 
@@ -168,14 +168,70 @@ summary(completeActivityData)
 ##  Median :  0.00   Median :2012-10-31   Median :1177.5  
 ##  Mean   : 37.38   Mean   :2012-10-31   Mean   :1177.5  
 ##  3rd Qu.: 27.00   3rd Qu.:2012-11-15   3rd Qu.:1766.2  
-##  Max.   :806.00   Max.   :2012-11-30   Max.   :2355.0  
-##    timestamp                  
-##  Min.   :2012-10-01 00:00:00  
-##  1st Qu.:2012-10-16 05:58:45  
-##  Median :2012-10-31 11:57:30  
-##  Mean   :2012-10-31 11:57:30  
-##  3rd Qu.:2012-11-15 17:56:15  
-##  Max.   :2012-11-30 23:55:00
+##  Max.   :806.00   Max.   :2012-11-30   Max.   :2355.0
 ```
 
+### Histogram of daily steps after imputing data
+
+
+```r
+ad_SumStepsPerDay <- completeActivityData %>%
+    group_by(date) %>%
+    summarise(steps = sum(steps))
+
+ggplot(ad_SumStepsPerDay, aes(steps)) +
+    geom_histogram(bins = 12)
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-11-1.png)
+
+Imputing the data did clearly have an effect. The maximum is no longer at 10000 steps but moved to 12500. Also, the warning message about days without data disappeared.
+
+
+```r
+mean(ad_SumStepsPerDay$steps, na.rm = TRUE)
+```
+
+```
+## [1] 10766.19
+```
+
+```r
+median(ad_SumStepsPerDay$steps, na.rm = TRUE)
+```
+
+```
+## [1] 10766.19
+```
+
+There was no change in the mean steps per day, which seems resasonable because missing values were imputed by the average for the interval in question. The median though was slightly increased and is now congruent with the mean.
+
 ## Are there differences in activity patterns between weekdays and weekends?
+
+### Creating a factor variable to distinguish weekdays from weekends
+
+
+```r
+completeActivityData$daytype <- wday(completeActivityData$date, label = FALSE)  %in% c(7,1)
+completeActivityData$daytype <- factor(completeActivityData$daytype, labels = c("weekday", "weekend"))
+```
+
+The variable daytype now holds a factor with the levels "weekday" and "weekend".
+
+### Plotting activity patterns for weekdays and weekends
+Grouping and summarising are dony with dplyr, then ggplot produces a faceted plot for weekdays and weekends.
+
+
+```r
+meanActivityData <- completeActivityData %>%
+    group_by(daytype, interval) %>%
+    summarise(steps = mean(steps))
+
+ggplot(meanActivityData, aes(interval, steps)) +
+    facet_wrap(~daytype, ncol = 1) +
+    geom_line()
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-14-1.png)
+
+Activity patterns are slightly similar, there is also an activity peak in the morning around 8, although less pronounced (running only, no commuting?). After that, there's more activity in the afternoon and clearly, no evening commuting.
