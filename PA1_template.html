@@ -120,11 +120,14 @@ library(lubridate)
 library(stringr)
 library(ggplot2)
 theme_set(theme_bw())</code></pre>
+<blockquote>
+<p>Important: Figures are in directory PA1_template_files/figure-html</p>
+</blockquote>
 </div>
 <div id="loading-and-preprocessing-the-data" class="section level2">
 <h2>Loading and preprocessing the data</h2>
-<div id="loading" class="section level3">
-<h3>Loading</h3>
+<div id="loading-data" class="section level3">
+<h3>Loading data</h3>
 <p>Reading in activity data directly from zip file:</p>
 <pre class="r"><code>activityData &lt;- read.csv(unzip(&quot;activity.zip&quot;, &quot;activity.csv&quot;), na.strings = NA)</code></pre>
 </div>

@@ -16,10 +16,15 @@ theme_set(theme_bw())
 ```
 
 
+> Important: Figures are in directory PA1\_template_files/figure-html
+
+
 ## Loading and preprocessing the data
 
-### Loading
+### Loading data
+
 Reading in activity data directly from zip file:
+
 
 ```r
 activityData <- read.csv(unzip("activity.zip", "activity.csv"), na.strings = NA)
